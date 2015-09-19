@@ -554,6 +554,7 @@ int output_run(int id)
 int output_cmd(int plugin_id, unsigned int control_id, unsigned int group, int value, char *valueStr)
 {
     int i = 0;
+    char buffer1[1024] = {0};
     DBG("command (%d, value: %d) for group %d triggered for plugin instance #%02d\n", control_id, value, group, plugin_id);
     switch(group) {
 		case IN_CMD_GENERIC:
@@ -593,18 +594,22 @@ int output_cmd(int plugin_id, unsigned int control_id, unsigned int group, int v
                                     /* allow others to access the global buffer again */
                                     pthread_mutex_unlock(&pglobal->in[input_number].db);
 
-                                    DBG("writing file: %s\n", valueStr);
+                                    /* prepare filename, store in folder */
+                                    memset(buffer1, 0, sizeof(buffer1));
+                                    snprintf(buffer1, sizeof(buffer1), "%s/%s", folder, valueStr);
+
+                                    DBG("writing file: %s\n", buffer1);
 
                                     int fd;
                                     /* open file for write */
-                                    if((fd = open(valueStr, O_CREAT | O_RDWR | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) < 0) {
-                                        OPRINT("could not open the file %s\n", valueStr);
+                                    if((fd = open(buffer1, O_CREAT | O_RDWR | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) < 0) {
+                                        OPRINT("could not open the file %s\n", buffer1);
                                         return -1;
                                     }
 
                                     /* save picture to file */
                                     if(write(fd, frame, frame_size) < 0) {
-                                        OPRINT("could not write to file %s\n", valueStr);
+                                        OPRINT("could not write to file %s\n", buffer1);
                                         perror("write()");
                                         close(fd);
                                         return -1;
