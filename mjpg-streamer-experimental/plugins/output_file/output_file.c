@@ -55,6 +55,7 @@ static unsigned char *frame = NULL;
 static char *command = NULL;
 static int input_number = 0;
 static char *mjpgFileName = NULL;
+static unsigned int http_mode = 0;
 
 /******************************************************************************
 Description.: print a help message
@@ -68,6 +69,7 @@ void help(void)
             " ---------------------------------------------------------------\n" \
             " The following parameters can be passed to this plugin:\n\n" \
             " [-f | --folder ]........: folder to save pictures\n" \
+            " [-t | --http ]..........: if set then wait for TAKE command from output_http\n" \
             " [-m | --mjpeg ].........: save the frames to an mjpg file \n" \
             " [-d | --delay ].........: delay after saving pictures in ms\n" \
             " [-i | --input ].........: read frames from the specified input plugin\n" \
@@ -214,7 +216,7 @@ void *worker_thread(void *arg)
     /* set cleanup handler to cleanup allocated ressources */
     pthread_cleanup_push(worker_cleanup, NULL);
 
-    while(ok >= 0 && !pglobal->stop) {
+    while(ok >= 0 && !pglobal->stop && !http_mode) {
         DBG("waiting for fresh frame\n");
 
         pthread_mutex_lock(&pglobal->in[input_number].db);
@@ -381,6 +383,8 @@ int output_init(output_parameter *param, int id)
             {"input", required_argument, 0, 0},
             {"m", required_argument, 0, 0},
             {"mjpeg", required_argument, 0, 0},
+            {"t", no_argument, 0, 0},
+            {"http", no_argument, 0, 0},
             {0, 0, 0, 0}
         };
 
@@ -446,6 +450,11 @@ int output_init(output_parameter *param, int id)
             DBG("case 12,13\n");
             mjpgFileName = strdup(optarg);
             break;
+        case 14:
+        case 15:
+            DBG("case 14,15\n");
+            http_mode = 1;
+            break;
         }
     }
 
@@ -457,6 +466,7 @@ int output_init(output_parameter *param, int id)
     OPRINT("output folder.....: %s\n", folder);
     OPRINT("input plugin.....: %d: %s\n", input_number, pglobal->in[input_number].plugin);
     OPRINT("delay after save..: %d\n", delay);
+    OPRINT("http mode..: %d\n", http_mode);
     if  (mjpgFileName == NULL) {
         if(ringbuffer_size > 0) {
             OPRINT("ringbuffer size...: %d to %d\n", ringbuffer_size, ringbuffer_size + ringbuffer_exceed);
